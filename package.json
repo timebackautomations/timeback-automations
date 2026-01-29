@@ -1,8 +1,4 @@
 {
   "name": "timeback-automations",
-  "version": "1.0.0",
-  "scripts": {
-    "dev": "serve .",
-    "start": "serve ."
-  }
+  "version": "1.0.0"
 }

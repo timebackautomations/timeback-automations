@@ -19,6 +19,35 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Time-Back Automations">
     <meta name="twitter:description" content="AI systems that give you 15-20 hours back every week">
+
+    <!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-407X5340V5"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-407X5340V5');
+  
+  // Track calculator usage
+  function trackCalculatorUsage(cost, hours, weeks) {
+    gtag('event', 'calculator_used', {
+      'event_category': 'engagement',
+      'event_label': 'Manual Tax Calculator',
+      'value': cost,
+      'hours_reclaimed': hours,
+      'weeks_reclaimed': weeks
+    });
+  }
+  
+  // Track form opens
+  function trackFormOpen(source) {
+    gtag('event', 'form_opened', {
+      'event_category': 'conversion',
+      'event_label': source,
+      'value': 1
+    });
+  }
+</script>
     
     <!-- Structured Data -->
     <script type="application/ld+json">
@@ -1190,260 +1219,371 @@
                 text-align: center;
             }
         }
+        /* Calculator Results Animation */
+.calculator-results {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-radius: var(--radius);
+    padding: 40px;
+    margin-top: 30px;
+    text-align: center;
+    border: 2px solid var(--color-accent);
+    box-shadow: 0 10px 30px rgba(59, 130, 246, 0.2);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.calculator-results.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.result-amount {
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: var(--color-accent-alt);
+    margin: 20px 0;
+    text-shadow: 0 5px 15px rgba(249, 115, 22, 0.3);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Calculator Input Styling */
+.input-group input:focus, .input-group select:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
     </style>
 
     <!-- JavaScript -->
     <script>
-        // Performance: Defer non-critical JavaScript
-        document.addEventListener('DOMContentLoaded', function() {
-            
-            // Mobile Menu
-            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-            const navLinks = document.getElementById('navLinks');
-            
-            if (mobileMenuBtn) {
-                mobileMenuBtn.addEventListener('click', () => {
-                    navLinks.classList.toggle('active');
-                });
-            }
-            
-            // Close mobile menu when clicking a link
-            document.querySelectorAll('.nav-links a').forEach(link => {
-                link.addEventListener('click', () => {
-                    navLinks.classList.remove('active');
-                });
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        // Mobile Menu
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const navLinks = document.getElementById('navLinks');
+        
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', () => {
+                navLinks.classList.toggle('active');
             });
-            
-            // Cookie Consent
-            const cookieBanner = document.getElementById('cookieBanner');
-            const acceptCookies = document.getElementById('acceptCookies');
-            const rejectCookies = document.getElementById('rejectCookies');
-            
-            // Check if user has already made a choice
-            if (!localStorage.getItem('cookieConsent')) {
+        }
+        
+        // Close mobile menu when clicking a link
+        document.querySelectorAll('.nav-links a').forEach(link => {
+            link.addEventListener('click', () => {
+                navLinks.classList.remove('active');
+            });
+        });
+        
+        // Cookie Consent
+        const cookieBanner = document.getElementById('cookieBanner');
+        const acceptCookies = document.getElementById('acceptCookies');
+        const rejectCookies = document.getElementById('rejectCookies');
+        
+        if (!localStorage.getItem('cookieConsent')) {
+            setTimeout(() => {
+                if (cookieBanner) cookieBanner.classList.add('show');
+            }, 1000);
+        }
+        
+        if (acceptCookies) {
+            acceptCookies.addEventListener('click', () => {
+                localStorage.setItem('cookieConsent', 'accepted');
+                if (cookieBanner) cookieBanner.classList.remove('show');
+            });
+        }
+        
+        if (rejectCookies) {
+            rejectCookies.addEventListener('click', () => {
+                localStorage.setItem('cookieConsent', 'rejected');
+                if (cookieBanner) cookieBanner.classList.remove('show');
+            });
+        }
+        
+        // MANUAL TAX CALCULATOR - FIXED VERSION
+        const calculateBtn = document.getElementById('calculateBtn');
+        const resultsContainer = document.getElementById('resultsContainer');
+        
+        if (calculateBtn) {
+            calculateBtn.addEventListener('click', function() {
+                const calcBtnText = document.getElementById('calcBtnText');
+                const calcBtnLoading = document.getElementById('calcBtnLoading');
+                
+                // Show loading
+                if (calcBtnText) calcBtnText.style.display = 'none';
+                if (calcBtnLoading) calcBtnLoading.style.display = 'inline-block';
+                
+                // Calculate after short delay
                 setTimeout(() => {
-                    if (cookieBanner) cookieBanner.classList.add('show');
-                }, 1000);
-            }
-            
-            if (acceptCookies) {
-                acceptCookies.addEventListener('click', () => {
-                    localStorage.setItem('cookieConsent', 'accepted');
-                    if (cookieBanner) cookieBanner.classList.remove('show');
-                });
-            }
-            
-            if (rejectCookies) {
-                rejectCookies.addEventListener('click', () => {
-                    localStorage.setItem('cookieConsent', 'rejected');
-                    if (cookieBanner) cookieBanner.classList.remove('show');
-                });
-            }
-            
-            // Manual Tax Calculator
-            const calculateBtn = document.getElementById('calculateBtn');
-            const resultsContainer = document.getElementById('resultsContainer');
-            
+                    // Get input values
+                    const hoursInput = document.getElementById('hours');
+                    const rateInput = document.getElementById('rate');
+                    const employeesInput = document.getElementById('employees');
+                    const industrySelect = document.getElementById('industry');
+                    
+                    const hours = parseFloat(hoursInput.value) || 15;
+                    const rate = parseFloat(rateInput.value) || 100;
+                    const employees = parseInt(employeesInput.value) || 3;
+                    const industry = industrySelect.value;
+                    
+                    // Debug log
+                    console.log('Calculator inputs:', { hours, rate, employees, industry });
+                    
+                    // Calculate costs
+                    const weeklyCost = hours * rate * employees;
+                    const annualCost = weeklyCost * 50; // 50 weeks/year
+                    
+                    // Industry multipliers
+                    const multipliers = {
+                        'legal': 1.2,
+                        'realestate': 1.15,
+                        'consulting': 1.1,
+                        'finance': 1.25,
+                        'other': 1.0
+                    };
+                    
+                    const multiplier = multipliers[industry] || 1.0;
+                    const finalCost = Math.round(annualCost * multiplier);
+                    
+                    // Calculate time savings
+                    const annualHours = hours * employees * 50;
+                    const weeksReclaimed = annualHours / 40;
+                    
+                    // Update results display
+                    const taxAmount = document.getElementById('taxAmount');
+                    const reclaimHours = document.getElementById('reclaimHours');
+                    const reclaimWeeks = document.getElementById('reclaimWeeks');
+                    
+                    console.log('Calculated results:', { 
+                        finalCost, 
+                        annualHours, 
+                        weeksReclaimed 
+                    });
+                    
+                    if (taxAmount) {
+                        taxAmount.textContent = `$${finalCost.toLocaleString()}`;
+                        console.log('Updated taxAmount:', taxAmount.textContent);
+                    }
+                    
+                    if (reclaimHours) {
+                        reclaimHours.textContent = annualHours.toLocaleString();
+                    }
+                    
+                    if (reclaimWeeks) {
+                        reclaimWeeks.textContent = weeksReclaimed.toFixed(1);
+                    }
+                    
+                    // Show results with animation
+                    if (resultsContainer) {
+                        resultsContainer.style.display = 'block';
+                        setTimeout(() => {
+                            resultsContainer.style.opacity = '1';
+                            resultsContainer.style.transform = 'translateY(0)';
+                        }, 10);
+                        
+                        // Scroll to results
+                        setTimeout(() => {
+                            resultsContainer.scrollIntoView({ 
+                                behavior: 'smooth', 
+                                block: 'center' 
+                            });
+                        }, 300);
+                    }
+                    
+                    // Track in Google Analytics
+                    if (typeof gtag !== 'undefined') {
+                        gtag('event', 'calculator_used', {
+                            'event_category': 'engagement',
+                            'event_label': 'Manual Tax Calculator',
+                            'value': finalCost,
+                            'hours': hours,
+                            'rate': rate,
+                            'employees': employees,
+                            'industry': industry
+                        });
+                    }
+                    
+                    // Hide loading
+                    if (calcBtnText) calcBtnText.style.display = 'inline';
+                    if (calcBtnLoading) calcBtnLoading.style.display = 'none';
+                    
+                }, 600);
+            });
+        }
+        
+        // Auto-calculate on page load
+        setTimeout(() => {
             if (calculateBtn) {
-                calculateBtn.addEventListener('click', function() {
-                    const calcBtnText = document.getElementById('calcBtnText');
-                    const calcBtnLoading = document.getElementById('calcBtnLoading');
-                    
-                    // Show loading state
-                    if (calcBtnText) calcBtnText.style.display = 'none';
-                    if (calcBtnLoading) calcBtnLoading.style.display = 'inline-block';
-                    
-                    // Simulate calculation delay for better UX
-                    setTimeout(() => {
-                        // Get values
-                        const hours = parseFloat(document.getElementById('hours').value) || 15;
-                        const rate = parseFloat(document.getElementById('rate').value) || 100;
-                        const employees = parseInt(document.getElementById('employees').value) || 3;
-                        
-                        // Calculate
-                        const weeklyCost = hours * rate * employees;
-                        const annualCost = weeklyCost * 50;
-                        const annualHours = hours * employees * 50;
-                        const weeksReclaimed = annualHours / 40;
-                        
-                        // Industry multiplier
-                        const industry = document.getElementById('industry').value;
-                        let multiplier = 1;
-                        if (industry === 'legal') multiplier = 1.2;
-                        if (industry === 'realestate') multiplier = 1.15;
-                        if (industry === 'consulting') multiplier = 1.1;
-                        if (industry === 'finance') multiplier = 1.25;
-                        
-                        const finalCost = Math.round(annualCost * multiplier);
-                        
-                        // Update results
-                        const taxAmount = document.getElementById('taxAmount');
-                        const reclaimHours = document.getElementById('reclaimHours');
-                        const reclaimWeeks = document.getElementById('reclaimWeeks');
-                        
-                        if (taxAmount) taxAmount.textContent = `$${finalCost.toLocaleString()}`;
-                        if (reclaimHours) reclaimHours.textContent = annualHours.toLocaleString();
-                        if (reclaimWeeks) reclaimWeeks.textContent = weeksReclaimed.toFixed(1);
-                        
-                        // Show results
-                        if (resultsContainer) resultsContainer.style.display = 'block';
-                        
-                        // Hide loading
-                        if (calcBtnText) calcBtnText.style.display = 'inline';
-                        if (calcBtnLoading) calcBtnLoading.style.display = 'none';
-                    }, 800);
-                });
+                calculateBtn.click();
             }
-            
-            // Tally Form Integration
-            const tallyForm = document.getElementById('tallyForm');
-            const closeFormBtn = document.getElementById('closeFormBtn');
-            
-            // Function to open Tally form
-            function openTallyForm() {
-                if (tallyForm) {
-                    tallyForm.style.display = 'flex';
-                    document.body.style.overflow = 'hidden';
-                } else {
-                    // Fallback: Open in new tab
-                    window.open('https://tally.so/r/5BZbYN', '_blank');
-                }
-            }
-            
-            // Function to close Tally form
-            function closeTallyForm() {
-                if (tallyForm) {
-                    tallyForm.style.display = 'none';
-                    document.body.style.overflow = 'auto';
-                }
-            }
-            
-            // All CTA buttons
-            const ctaButtons = [
-                'calculateTaxBtn',
-                'betaBtn', 
-                'solutionBtn',
-                'footerCtaBtn'
-            ];
-            
-            ctaButtons.forEach(btnId => {
-                const btn = document.getElementById(btnId);
-                if (btn) {
-                    btn.addEventListener('click', function() {
-                        // Show loading for main CTA
-                        if (btnId === 'calculateTaxBtn') {
-                            const btnText = document.getElementById('btnText');
-                            const btnLoading = document.getElementById('btnLoading');
-                            if (btnText) btnText.style.display = 'none';
-                            if (btnLoading) btnLoading.style.display = 'inline-block';
-                            
-                            setTimeout(() => {
-                                if (btnText) btnText.style.display = 'inline';
-                                if (btnLoading) btnLoading.style.display = 'none';
-                                openTallyForm();
-                            }, 500);
-                        } else {
-                            openTallyForm();
-                        }
-                    });
-                }
-            });
-            
-            if (closeFormBtn) {
-                closeFormBtn.addEventListener('click', closeTallyForm);
-            }
-            
-            // Close modal when clicking outside
+        }, 1500);
+        
+        // Tally Form Integration
+        const tallyForm = document.getElementById('tallyForm');
+        const closeFormBtn = document.getElementById('closeFormBtn');
+        
+        function openTallyForm(source = 'unknown') {
             if (tallyForm) {
-                tallyForm.addEventListener('click', (e) => {
-                    if (e.target === tallyForm) {
-                        closeTallyForm();
+                tallyForm.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+                
+                // Track form open
+                if (typeof gtag !== 'undefined') {
+                    gtag('event', 'form_opened', {
+                        'event_category': 'conversion',
+                        'event_label': source,
+                        'value': 1
+                    });
+                }
+            } else {
+                window.open('https://tally.so/r/5BZbYN', '_blank');
+            }
+        }
+        
+        function closeTallyForm() {
+            if (tallyForm) {
+                tallyForm.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        }
+        
+        // Connect all CTA buttons
+        const ctaButtons = {
+            'calculateTaxBtn': 'hero_cta',
+            'betaBtn': 'beta_banner', 
+            'solutionBtn': 'calculator_solution',
+            'footerCtaBtn': 'footer_cta'
+        };
+        
+        Object.keys(ctaButtons).forEach(btnId => {
+            const btn = document.getElementById(btnId);
+            if (btn) {
+                btn.addEventListener('click', function() {
+                    if (btnId === 'calculateTaxBtn') {
+                        const btnText = document.getElementById('btnText');
+                        const btnLoading = document.getElementById('btnLoading');
+                        if (btnText) btnText.style.display = 'none';
+                        if (btnLoading) btnLoading.style.display = 'inline-block';
+                        
+                        setTimeout(() => {
+                            if (btnText) btnText.style.display = 'inline';
+                            if (btnLoading) btnLoading.style.display = 'none';
+                            openTallyForm(ctaButtons[btnId]);
+                        }, 500);
+                    } else {
+                        openTallyForm(ctaButtons[btnId]);
                     }
                 });
             }
-            
-            // Legal Modals
-            const modals = document.querySelectorAll('.modal');
-            const legalLinks = document.querySelectorAll('[data-modal]');
-            const closeModalButtons = document.querySelectorAll('.close-modal');
-            
-            legalLinks.forEach(link => {
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const modalId = link.getAttribute('data-modal');
-                    const modal = document.getElementById(`${modalId}-modal`);
-                    if (modal) {
-                        modal.classList.add('active');
-                        document.body.style.overflow = 'hidden';
-                    }
-                });
+        });
+        
+        if (closeFormBtn) {
+            closeFormBtn.addEventListener('click', closeTallyForm);
+        }
+        
+        if (tallyForm) {
+            tallyForm.addEventListener('click', (e) => {
+                if (e.target === tallyForm) {
+                    closeTallyForm();
+                }
             });
-            
-            closeModalButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    modals.forEach(modal => {
-                        modal.classList.remove('active');
-                    });
+        }
+        
+        // Legal Modals
+        const modals = document.querySelectorAll('.modal');
+        const legalLinks = document.querySelectorAll('[data-modal]');
+        const closeModalButtons = document.querySelectorAll('.close-modal');
+        
+        legalLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const modalId = link.getAttribute('data-modal');
+                const modal = document.getElementById(`${modalId}-modal`);
+                if (modal) {
+                    modal.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                }
+            });
+        });
+        
+        closeModalButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                modals.forEach(modal => {
+                    modal.classList.remove('active');
+                });
+                document.body.style.overflow = 'auto';
+            });
+        });
+        
+        modals.forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
                     document.body.style.overflow = 'auto';
-                });
+                }
             });
-            
-            // Close modal when clicking outside
-            modals.forEach(modal => {
-                modal.addEventListener('click', (e) => {
-                    if (e.target === modal) {
+        });
+        
+        // Smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                if (this.getAttribute('href') === '#') return;
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 100,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+        
+        // Escape key to close modals
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (tallyForm && tallyForm.style.display === 'flex') {
+                    closeTallyForm();
+                }
+                modals.forEach(modal => {
+                    if (modal.classList.contains('active')) {
                         modal.classList.remove('active');
                         document.body.style.overflow = 'auto';
                     }
                 });
-            });
-            
-            // Smooth scrolling for anchor links
-            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-                anchor.addEventListener('click', function(e) {
-                    if (this.getAttribute('href') === '#') return;
-                    
-                    e.preventDefault();
-                    const targetId = this.getAttribute('href');
-                    const targetElement = document.querySelector(targetId);
-                    
-                    if (targetElement) {
-                        window.scrollTo({
-                            top: targetElement.offsetTop - 100,
-                            behavior: 'smooth'
-                        });
-                    }
-                });
-            });
-            
-            // Auto-calculate on page load
-            setTimeout(() => {
-                if (calculateBtn) {
-                    calculateBtn.click();
-                }
-            }, 1500);
-            
-            // Close form with Escape key
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') {
-                    if (tallyForm && tallyForm.style.display === 'flex') {
-                        closeTallyForm();
-                    }
-                    
-                    modals.forEach(modal => {
-                        if (modal.classList.contains('active')) {
-                            modal.classList.remove('active');
-                            document.body.style.overflow = 'auto';
-                        }
-                    });
-                }
-            });
-            
-            // Error handling
-            window.addEventListener('error', function(e) {
-                console.error('Error occurred:', e.error);
-            });
+            }
         });
-    </script>
-</body>
-</html>
+        
+        // Initialize calculator with default values
+        function initCalculatorDefaults() {
+            const hoursInput = document.getElementById('hours');
+            const rateInput = document.getElementById('rate');
+            const employeesInput = document.getElementById('employees');
+            const industrySelect = document.getElementById('industry');
+            
+            if (hoursInput && !hoursInput.value) hoursInput.value = 15;
+            if (rateInput && !rateInput.value) rateInput.value = 100;
+            if (employeesInput && !employeesInput.value) employeesInput.value = 3;
+            if (industrySelect) industrySelect.value = 'realestate';
+        }
+        
+        // Call initialization
+        initCalculatorDefaults();
+        
+        // Track page view in Google Analytics
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'page_view', {
+                'page_title': document.title,
+                'page_location': window.location.href
+            });
+        }
+    });
+</script>
